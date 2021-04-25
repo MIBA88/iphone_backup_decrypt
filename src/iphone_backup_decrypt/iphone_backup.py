@@ -132,7 +132,7 @@ class EncryptedBackup:
         except sqlite3.Error:
             return False
 
-    def _decrypt_manifest_db_file(self):
+    def decrypt_manifest_db_file(self):
         if os.path.exists(self._temp_decrypted_manifest_db_path):
             return
         # Ensure we've already unlocked the Keybag:
@@ -151,7 +151,7 @@ class EncryptedBackup:
         if not self._open_temp_database():
             raise ConnectionError("Manifest.db file does not seem to be the right format!")
 
-    def _decrypt_inner_file(self, *, file_id, file_bplist):
+    def decrypt_inner_file(self, *, file_id, file_bplist):
         # Ensure we've already unlocked the Keybag:
         self._read_and_unlock_keybag()
         # Extract the decryption key from the PList data:
@@ -175,13 +175,13 @@ class EncryptedBackup:
         """Validate that the backup can be decrypted successfully."""
         # Ensure that we've initialised everything:
         if self._temp_manifest_db_conn is None:
-            self._decrypt_manifest_db_file()
+            self.decrypt_manifest_db_file()
         return True
 
     def save_manifest_file(self, output_filename):
         """Save a permanent copy of the decrypted Manifest SQLite database."""
         # Ensure that we've decrypted the manifest file:
-        self._decrypt_manifest_db_file()
+        self.decrypt_manifest_db_file()
         # Copy the decrypted file to the output:
         output_directory = os.path.dirname(output_filename)
         if output_directory:
@@ -200,7 +200,7 @@ class EncryptedBackup:
         """
         # Ensure that we've initialised everything:
         if self._temp_manifest_db_conn is None:
-            self._decrypt_manifest_db_file()
+            self.decrypt_manifest_db_file()
         # Use Manifest.db to find the on-disk filename and file metadata, including the keys, for the file.
         # The metadata is contained in the 'file' column, as a binary PList file:
         try:
@@ -219,7 +219,7 @@ class EncryptedBackup:
             return None
         file_id, file_bplist = result
         # Decrypt the requested file:
-        return self._decrypt_inner_file(file_id=file_id, file_bplist=file_bplist)
+        return self.decrypt_inner_file(file_id=file_id, file_bplist=file_bplist)
 
     def extract_file(self, *, relative_path, output_filename):
         """
@@ -263,7 +263,7 @@ class EncryptedBackup:
         """
         # Ensure that we've initialised everything:
         if self._temp_manifest_db_conn is None:
-            self._decrypt_manifest_db_file()
+            self.decrypt_manifest_db_file()
         # Use Manifest.db to find the on-disk filename(s) and file metadata, including the keys, for the file(s).
         # The metadata is contained in the 'file' column, as a binary PList file; the filename in 'relativePath':
         try:
@@ -285,8 +285,21 @@ class EncryptedBackup:
             filename = os.path.basename(matched_relative_path)
             output_path = os.path.join(output_folder, filename)
             # Decrypt the file:
-            decrypted_data = self._decrypt_inner_file(file_id=file_id, file_bplist=file_bplist)
+            decrypted_data = self.decrypt_inner_file(file_id=file_id, file_bplist=file_bplist)
             # Output to disk:
             if decrypted_data is not None:
                 with open(output_path, 'wb') as outfile:
                     outfile.write(decrypted_data)
+
+    def execute_sql(self, sql):
+        if self._temp_manifest_db_conn is None:
+            self.decrypt_manifest_db_file()
+        # Use Manifest.db to find the on-disk filename(s) and file metadata, including the keys, for the file(s).
+        # The metadata is contained in the 'file' column, as a binary PList file; the filename in 'relativePath':
+        try:
+            cur = self._temp_manifest_db_conn.cursor()
+            cur.execute(sql)
+            results = cur.fetchall()
+        except sqlite3.Error:
+            return None
+        return results
