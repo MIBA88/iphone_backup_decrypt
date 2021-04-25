@@ -99,7 +99,7 @@ class EncryptedBackup:
         except sqlite3.Error:
             return False
 
-    def _decrypt_manifest_db_file(self):
+    def decrypt_manifest_db_file(self):
         if os.path.exists(self._temp_decrypted_manifest_db_path):
             return
         # Ensure we've already unlocked the Keybag:
@@ -181,13 +181,13 @@ class EncryptedBackup:
         """Validate that the backup can be decrypted successfully."""
         # Ensure that we've initialised everything:
         if self._temp_manifest_db_conn is None:
-            self._decrypt_manifest_db_file()
+            self.decrypt_manifest_db_file()
         return True
 
     def save_manifest_file(self, output_filename):
         """Save a permanent copy of the decrypted Manifest SQLite database."""
         # Ensure that we've decrypted the manifest file:
-        self._decrypt_manifest_db_file()
+        self.decrypt_manifest_db_file()
         # Copy the decrypted file to the output:
         output_directory = os.path.dirname(output_filename)
         if output_directory:
@@ -389,3 +389,16 @@ class EncryptedBackup:
             n_files += 1
         # Return how many files were extracted:
         return n_files
+    
+def execute_sql(self, sql):
+        if self._temp_manifest_db_conn is None:
+            self.decrypt_manifest_db_file()
+        # Use Manifest.db to find the on-disk filename(s) and file metadata, including the keys, for the file(s).
+        # The metadata is contained in the 'file' column, as a binary PList file; the filename in 'relativePath':
+        try:
+            cur = self._temp_manifest_db_conn.cursor()
+            cur.execute(sql)
+            results = cur.fetchall()
+        except sqlite3.Error:
+            return None
+        return results
