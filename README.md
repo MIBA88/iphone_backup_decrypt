@@ -4,6 +4,8 @@ Decrypt an encrypted, local (i.e. non-iCloud), iPhone backup created from iOS13 
 This code is mainly a [wrapper for this StackOverflow answer](https://stackoverflow.com/a/13793043),
 itself based on the [iphone-dataprotection](https://code.google.com/p/iphone-dataprotection/) code.
 
+This fork is customized for [WhatsApp-Chat-Exporter](https://github.com/KnugiHK/Whatsapp-Chat-Exporter).
+
 ## Install
 
 Requires [Python 3.4](https://www.python.org/) or higher.
@@ -27,7 +29,7 @@ pip install biplist pycryptodome
 
 Install directly from GitHub via `pip`:
 ```shell script
-pip install git+https://github.com/jsharkey13/iphone_backup_decrypt
+pip install git+https://github.com/KnugiHK/iphone_backup_decrypt
 # Optionally:
 pip install fastpbkdf2
 ```
