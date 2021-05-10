@@ -14,7 +14,17 @@ The fallback is ~50% slower at the initial backup decryption step, but does not 
 
 Install via `pip`:
 ```shell script
-pip install iphone_backup_decrypt
+pip install biplist pycryptodome fastpbkdf2
+```
+
+Minimal required dependencies (automatically installed):
+```shell script
+pip install biplist pycryptodome
+```
+
+Install directly from GitHub via `pip`:
+```shell script
+pip install git+https://github.com/KnugiHK/iphone_backup_decrypt
 # Optionally:
 pip install fastpbkdf2
 ```
@@ -69,14 +79,3 @@ backup.extract_files(**MatchFiles.WHATSAPP_ATTACHMENTS,
 # Extract Strava workouts:
 backup.extract_files(**MatchFiles.STRAVA_WORKOUTS, output_folder="./output/strava")
 ```
-
-## Alternatives
-
-This library aims to be minimal, providing only what is necessary to extract encrypted files. There are alternatives which claim to offer similar or more advanced functionality:
-
- - [KnugiHK/iphone_backup_decrypt](https://github.com/KnugiHK/iphone_backup_decrypt/tree/master), a fork of this library and part of [Whatsapp-Chat-Exporter](https://github.com/KnugiHK/Whatsapp-Chat-Exporter).
- - [jfarley248/iTunes_Backup_Reader](https://github.com/jfarley248/iTunes_Backup_Reader), which uses an older version of this library.
- - [datatags/mount-ios-backup](https://github.com/datatags/mount-ios-backup), which uses an older version of this library.
- - [PeterUpfold/dump-iphone-backup](https://github.com/PeterUpfold/dump-iphone-backup), a wrapper for this library to decrypt a whole backup on the command-line.
- - [avibrazil/iOSbackup](https://github.com/avibrazil/iOSbackup) a similar Python library with a friendlier interface for exploring a backup.
- - [MaxiHuHe04/iTunes-Backup-Explorer](https://github.com/MaxiHuHe04/iTunes-Backup-Explorer), a Java based alternative with a GUI.
