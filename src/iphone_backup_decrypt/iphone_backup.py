@@ -304,3 +304,6 @@ class EncryptedBackup:
         except sqlite3.Error:
             return None
         return results
+
+    def get_connection(self):
+        return self._temp_manifest_db_conn
