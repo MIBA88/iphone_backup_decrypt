@@ -11,6 +11,16 @@ from . import google_iphone_dataprotection, utils
 __all__ = ["EncryptedBackup"]
 
 
+class Domain:
+    """Domain for commonly accessed groups of files."""
+
+    # Standard iOS file locations:
+    CAMERA_ROLL = "CameraRollDomain"
+    SMS_ATTACHMENTS = "MediaDomain"
+
+    WHATSAPP = "AppDomainGroup-group.net.whatsapp.WhatsApp.shared"
+
+
 class FailedToDecryptError(Exception):
     """Raised when a backup fails to decrypt."""
     pass
@@ -401,7 +411,7 @@ class EncryptedBackup:
         # Return how many files were extracted:
         return n_files
     
-def execute_sql(self, sql):
+    def execute_sql(self, sql):
         if self._temp_manifest_db_conn is None:
             self.decrypt_manifest_db_file()
         # Use Manifest.db to find the on-disk filename(s) and file metadata, including the keys, for the file(s).
