@@ -53,7 +53,7 @@ class FailedToDecryptError(Exception):
 # and code sample provided by @andrewdotn in this answer: https://stackoverflow.com/a/13793043
 class EncryptedBackup:
 
-    def __init__(self, *, backup_directory, passphrase):
+    def __init__(self, *, backup_directory, passphrase, cleanup=True, check_same_thread=True):
         """
         Decrypt an iOS 13 encrypted backup using the passphrase chosen in iTunes.
 
@@ -86,6 +86,8 @@ class EncryptedBackup:
         self._manifest_db_path = os.path.join(self._backup_directory, 'Manifest.db')
         self._keybag = None
         self._unlocked = False
+        self._cleanup = cleanup
+        self._check_same_thread = check_same_thread
         # We need a temporary file for the decrypted database, because SQLite can't open bytes in memory as a database:
         self._temporary_folder = tempfile.mkdtemp()
         self._temp_decrypted_manifest_db_path = os.path.join(self._temporary_folder, 'Manifest.db')
@@ -93,7 +95,8 @@ class EncryptedBackup:
         self._temp_manifest_db_conn = None
 
     def __del__(self):
-        self._cleanup()
+        if self._cleanup:
+            self._cleanup()
 
     def _cleanup(self):
         try:
@@ -127,7 +130,10 @@ class EncryptedBackup:
         try:
             # Connect to the decrypted Manifest.db database if necessary:
             if self._temp_manifest_db_conn is None:
-                self._temp_manifest_db_conn = sqlite3.connect(self._temp_decrypted_manifest_db_path)
+                self._temp_manifest_db_conn = sqlite3.connect(
+                    self._temp_decrypted_manifest_db_path,
+                    check_same_thread=self._check_same_thread
+                )
             # Check that it has the expected table structure and a list of files:
             cur = self._temp_manifest_db_conn.cursor()
             cur.execute("SELECT count(*) FROM Files;")
