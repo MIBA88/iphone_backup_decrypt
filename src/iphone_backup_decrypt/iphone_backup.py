@@ -268,7 +268,7 @@ class EncryptedBackup:
 
     def extract_files(self, *, relative_paths_like=None, domain=None, output_folder):
         if relative_paths_like is not None and domain is not None:
-            raise ValueError("Cannot specify both 'relative_paths_like' and 'domain_like'!")
+            raise ValueError("Cannot specify both 'relative_paths_like' and 'domain'!")
         if relative_paths_like is not None:
             return self.extract_files_by_relative_path(relative_paths_like, output_folder)
         elif domain is not None:
