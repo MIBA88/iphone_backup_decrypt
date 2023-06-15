@@ -11,6 +11,11 @@ from . import google_iphone_dataprotection, utils
 __all__ = ["EncryptedBackup"]
 
 
+class FailedToDecryptError(Exception):
+    """Raised when a backup fails to decrypt."""
+    pass
+
+
 # Based on https://stackoverflow.com/questions/1498342/how-to-decrypt-an-encrypted-apple-itunes-iphone-backup
 # and code sample provided by @andrewdotn in this answer: https://stackoverflow.com/a/13793043
 class EncryptedBackup:
@@ -77,8 +82,8 @@ class EncryptedBackup:
         # Attempt to unlock the Keybag:
         self._unlocked = self._keybag.unlockWithPassphrase(self._passphrase)
         if not self._unlocked:
-            raise ValueError("Failed to decrypt keys: incorrect passphrase?")
-        # No need to keep the passphrase anymore:
+            raise FailedToDecryptError("Failed to decrypt keys: incorrect passphrase?")
+        # No need to keep the passphrase any more:
         self._passphrase = None
         return True
 
