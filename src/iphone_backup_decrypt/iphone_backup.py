@@ -44,6 +44,16 @@ class RelativePathsLike:
     WHATSAPP_ATTACHMENTS = "Message/Media/%.%"
 
 
+class Domain:
+    """Domain for commonly accessed groups of files."""
+
+    # Standard iOS file locations:
+    CAMERA_ROLL = "CameraRollDomain"
+    SMS_ATTACHMENTS = "MediaDomain"
+
+    WHATSAPP = "AppDomainGroup-group.net.whatsapp.WhatsApp.shared"
+
+
 class FailedToDecryptError(Exception):
     """Raised when a backup fails to decrypt."""
     pass
@@ -256,7 +266,15 @@ class EncryptedBackup:
             with open(output_filename, 'wb') as outfile:
                 outfile.write(decrypted_data)
 
-    def extract_files(self, *, relative_paths_like, output_folder):
+    def extract_files(self, *, relative_paths_like=None, domain=None, output_folder):
+        if relative_paths_like is not None and domain is not None:
+            raise ValueError("Cannot specify both 'relative_paths_like' and 'domain_like'!")
+        if relative_paths_like is not None:
+            return self.extract_files_by_relative_path(relative_paths_like, output_folder)
+        elif domain is not None:
+            return self.extract_files_by_domain(domain, output_folder)
+
+    def extract_files_by_relative_path(self, relative_paths_like, output_folder):
         """
         Decrypt files matching a relative path query and output them to a folder.
 
@@ -301,6 +319,56 @@ class EncryptedBackup:
             if decrypted_data is not None:
                 with open(output_path, 'wb') as outfile:
                     outfile.write(decrypted_data)
+
+    def extract_files_by_domain(self, domain, output_folder):
+        """
+        Decrypt files matching a domain query and output them to a folder.
+
+        Use very generic domain matching at your own risk.
+
+        :param domain:
+            An iOS 'domain' of the files to be decrypted.
+            Common domains are provided by the 'Domain' class, otherwise these can be found
+            by opening the decrypted Manifest.db file and examining the Files table.
+        :param output_folder:
+            The folder to write output files into. Files will be named with their internal iOS filenames and will
+            overwrite anything in the output folder with that name.
+        """
+        # Ensure that we've initialised everything:
+        if self._temp_manifest_db_conn is None:
+            self.decrypt_manifest_db_file()
+        # Use Manifest.db to find the on-disk filename(s) and file metadata, including the keys, for the file(s).
+        # The metadata is contained in the 'file' column, as a binary PList file; the filename in 'relativePath':
+        try:
+            self._temp_manifest_db_conn.row_factory = sqlite3.Row
+            cur = self._temp_manifest_db_conn.cursor()
+            query = """
+                SELECT fileID, relativePath, file, flags
+                FROM Files
+                WHERE domain = ?
+                AND relativePath != ''
+                ORDER BY relativePath;
+            """
+            cur.execute(query, (domain,))
+            results = cur.fetchall()
+        except sqlite3.Error as e:
+            return None
+        # Ensure output destination exists then loop through matches:
+        os.makedirs(os.path.join(output_folder, domain), exist_ok=True)
+        for file_id, relative_path, file_bplist, flags in results:
+            if flags == 2:
+                try:
+                    os.mkdir(os.path.join(output_folder, relative_path))
+                except FileExistsError:
+                    pass
+            else:
+                # Decrypt the file:
+                decrypted_data = self.decrypt_inner_file(file_id=file_id, file_bplist=file_bplist)
+                # Output to disk:
+                if decrypted_data is not None:
+                    destination = os.path.join(output_folder, relative_path)
+                    with open(destination, 'wb') as outfile:
+                        outfile.write(decrypted_data)
 
     def execute_sql(self, sql):
         if self._temp_manifest_db_conn is None:
