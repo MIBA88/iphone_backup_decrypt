@@ -296,6 +296,7 @@ class EncryptedBackup:
             self.decrypt_manifest_db_file()
         # Use Manifest.db to find the on-disk filename(s) and file metadata, including the keys, for the file(s).
         # The metadata is contained in the 'file' column, as a binary PList file; the filename in 'relativePath':
+        self._temp_manifest_db_conn.row_factory = sqlite3.Row
         try:
             cur = self._temp_manifest_db_conn.cursor()
             cur.execute(sql)
