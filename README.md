@@ -4,6 +4,8 @@ Decrypt an encrypted, local iPhone backup created from iOS13 or newer.
 This code [was based on this StackOverflow answer](https://stackoverflow.com/a/13793043),
 itself based on the [iphone-dataprotection](https://code.google.com/p/iphone-dataprotection/) code.
 
+This fork is customized for [WhatsApp-Chat-Exporter](https://github.com/KnugiHK/Whatsapp-Chat-Exporter).
+
 ## Install
 
 Requires [Python 3.8](https://www.python.org/) or higher.
