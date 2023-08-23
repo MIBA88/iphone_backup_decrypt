@@ -282,6 +282,10 @@ class EncryptedBackup:
             decrypted Manifest.db file and examining the Files table.
         :param output_filename:
             The filename to write the decrypted file contents to.
+        :param domain:
+            The iOS 'domain' of the file to be decrypted. Common domains are provided by the
+            'Domain' class, otherwise these can be found by opening the decrypted Manifest.db file
+            and examining the Files table.
         """
         # Extract the required metadata:
         file_id, file_bplist = self._file_metadata_from_manifest(relative_path, domain_like)
