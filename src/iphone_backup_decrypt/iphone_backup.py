@@ -209,13 +209,17 @@ class EncryptedBackup:
             os.makedirs(output_directory, exist_ok=True)
         shutil.copy(self._temp_decrypted_manifest_db_path, output_filename)
 
-    def extract_file_as_bytes(self, relative_path):
+    def extract_file_as_bytes(self, relative_path, domain=None):
         """
         Decrypt a single named file and return the bytes.
 
         :param relative_path:
             The iOS 'relativePath' of the file to be decrypted. Common relative paths are provided by the
             'RelativePath' class, otherwise these can be found by opening the decrypted Manifest.db file
+            and examining the Files table.
+        :param domain:
+            The iOS 'domain' of the file to be decrypted. Common domains are provided by the
+            'Domain' class, otherwise these can be found by opening the decrypted Manifest.db file
             and examining the Files table.
         :return: decrypted bytes of the file.
         """
@@ -226,15 +230,19 @@ class EncryptedBackup:
         # The metadata is contained in the 'file' column, as a binary PList file:
         try:
             cur = self._temp_manifest_db_conn.cursor()
-            query = """
+            query = f"""
                 SELECT fileID, file
                 FROM Files
                 WHERE relativePath = ?
                 AND flags=1
+                {'AND domain=?' if domain is not None else ''}
                 ORDER BY domain, relativePath
                 LIMIT 1;
             """
-            cur.execute(query, (relative_path,))
+            if domain is not None:
+                cur.execute(query, (relative_path, domain))
+            else:
+                cur.execute(query, (relative_path,))
             result = cur.fetchone()
         except sqlite3.Error:
             return None
@@ -242,7 +250,7 @@ class EncryptedBackup:
         # Decrypt the requested file:
         return self.decrypt_inner_file(file_id=file_id, file_bplist=file_bplist)
 
-    def extract_file(self, *, relative_path, output_filename):
+    def extract_file(self, *, relative_path, domain=None, output_filename):
         """
         Decrypt a single named file and save it to disk.
 
@@ -255,9 +263,13 @@ class EncryptedBackup:
             and examining the Files table.
         :param output_filename:
             The filename to write the decrypted file contents to.
+        :param domain:
+            The iOS 'domain' of the file to be decrypted. Common domains are provided by the
+            'Domain' class, otherwise these can be found by opening the decrypted Manifest.db file
+            and examining the Files table.
         """
         # Get the decrypted bytes of the requested file:
-        decrypted_data = self.extract_file_as_bytes(relative_path)
+        decrypted_data = self.extract_file_as_bytes(relative_path, domain)
         # Output them to disk:
         output_directory = os.path.dirname(output_filename)
         if output_directory:
