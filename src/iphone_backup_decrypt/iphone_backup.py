@@ -286,7 +286,7 @@ class EncryptedBackup:
         elif domain is not None:
             return self.extract_files_by_domain(domain, output_folder)
 
-    def extract_files_by_relative_path(self, relative_paths_like, output_folder):
+    def extract_files_by_relative_path(self, relative_paths_like, output_folder, bplist_reader=None):
         """
         Decrypt files matching a relative path query and output them to a folder.
 
@@ -331,8 +331,10 @@ class EncryptedBackup:
             if decrypted_data is not None:
                 with open(output_path, 'wb') as outfile:
                     outfile.write(decrypted_data)
+                if bplist_reader:
+                    self.modify_timestamp(output_path, bplist_reader, file_bplist)
 
-    def extract_files_by_domain(self, domain, output_folder):
+    def extract_files_by_domain(self, domain, output_folder, bplist_reader=None):
         """
         Decrypt files matching a domain query and output them to a folder.
 
@@ -381,6 +383,8 @@ class EncryptedBackup:
                     destination = os.path.join(output_folder, relative_path)
                     with open(destination, 'wb') as outfile:
                         outfile.write(decrypted_data)
+                    if bplist_reader:
+                        self.modify_timestamp(destination, bplist_reader, file_bplist)
 
     def execute_sql(self, sql):
         if self._temp_manifest_db_conn is None:
@@ -398,3 +402,9 @@ class EncryptedBackup:
 
     def get_connection(self):
         return self._temp_manifest_db_conn
+
+    def modify_timestamp(self, destination, bplist_reader, file_bplist):
+        metadata = bplist_reader(file_bplist).parse()
+        creation = metadata["$objects"][1]["Birth"]
+        modification = metadata["$objects"][1]["LastModified"]
+        os.utime(destination, (modification, modification))
