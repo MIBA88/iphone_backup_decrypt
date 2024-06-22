@@ -416,6 +416,15 @@ class EncryptedBackup:
         return n_files
     
     def execute_sql(self, sql, args=()):
+        """Execute raw query on the manifest database
+
+        :param sql:
+            The raw SQL query to be executed. Parameterized query supported.
+        :param args
+            The arguments for the parameterized query. Defaults to empty.
+
+        :return: The query result.
+        """
         if self._temp_manifest_db_conn is None:
             self._decrypt_manifest_db_file()
         # Use Manifest.db to find the on-disk filename(s) and file metadata, including the keys, for the file(s).
@@ -431,4 +440,8 @@ class EncryptedBackup:
             return results
 
     def get_connection(self):
+        """Get the database connection for the decrypted manifest database
+
+        :return: The connection for the decrypted manifest database
+        """
         return self._temp_manifest_db_conn
