@@ -63,7 +63,7 @@ class EncryptedBackup:
         self._manifest_db_path = os.path.join(self._backup_directory, 'Manifest.db')
         self._keybag = None
         self._unlocked = False
-        self._cleanup = cleanup
+        self._cleanup_option = cleanup
         self._check_same_thread = check_same_thread
         # We need a temporary file for the decrypted database, because SQLite can't open bytes in memory as a database:
         self._temporary_folder = tempfile.mkdtemp()
@@ -72,7 +72,7 @@ class EncryptedBackup:
         self._temp_manifest_db_conn = None
 
     def __del__(self):
-        if self._cleanup:
+        if self._cleanup_option:
             self._cleanup()
 
     def _cleanup(self):
