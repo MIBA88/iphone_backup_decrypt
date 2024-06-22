@@ -431,9 +431,3 @@ class EncryptedBackup:
 
     def get_connection(self):
         return self._temp_manifest_db_conn
-
-    def modify_timestamp(self, destination, bplist_reader, file_bplist):
-        metadata = bplist_reader(file_bplist).parse()
-        creation = metadata["$objects"][1]["Birth"]
-        modification = metadata["$objects"][1]["LastModified"]
-        os.utime(destination, (modification, modification))
