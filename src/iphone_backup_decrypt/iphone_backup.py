@@ -415,7 +415,7 @@ class EncryptedBackup:
         # Return how many files were extracted:
         return n_files
     
-    def execute_sql(self, sql):
+    def execute_sql(self, sql, args=()):
         if self._temp_manifest_db_conn is None:
             self._decrypt_manifest_db_file()
         # Use Manifest.db to find the on-disk filename(s) and file metadata, including the keys, for the file(s).
@@ -423,11 +423,12 @@ class EncryptedBackup:
         self._temp_manifest_db_conn.row_factory = sqlite3.Row
         try:
             cur = self._temp_manifest_db_conn.cursor()
-            cur.execute(sql)
+            cur.execute(sql, args)
             results = cur.fetchall()
         except sqlite3.Error:
             return None
-        return results
+        else:
+            return results
 
     def get_connection(self):
         return self._temp_manifest_db_conn
