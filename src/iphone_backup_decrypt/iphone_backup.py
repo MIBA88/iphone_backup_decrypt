@@ -295,7 +295,7 @@ class EncryptedBackup:
         # Decrypt the requested file:
         self._decrypt_file_to_disk(file_id=file_id, file_plist=file_plist, key=inner_key, output_filepath=output_filename)
 
-    def extract_files(self, *, relative_paths_like=None, domain_like=None, output_folder,
+    def extract_files(self, *, relative_paths_like="%", domain_like="%", output_folder,
                       preserve_folders=False, domain_subfolders=False, incremental=False,
                       filter_callback=None):
         """
@@ -358,14 +358,6 @@ class EncryptedBackup:
         # Ensure that we've initialised everything:
         if self._temp_manifest_db_conn is None:
             self._decrypt_manifest_db_file()
-        # Check the provided arguments and replace missing ones with wildcards:
-        if relative_paths_like is None and domain_like is None:
-            # If someone _really_ wants to try and extract everything, then setting both to '%' should be enough.
-            raise ValueError("At least one of 'relative_paths_like' or 'domain_like' must be specified!")
-        elif relative_paths_like is None and domain_like is not None:
-            relative_paths_like = "%"
-        elif relative_paths_like is not None and domain_like is None:
-            domain_like = "%"
         # If the filter function is not provided, default to including everything:
         _include_fn = filter_callback if callable(filter_callback) else (lambda **kwargs: True)
         # Use Manifest.db to find the on-disk filename(s) and file metadata, including the keys, for the file(s).
