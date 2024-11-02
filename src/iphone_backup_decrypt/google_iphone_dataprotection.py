@@ -7,37 +7,24 @@
 #####
 
 import struct
-from binascii import hexlify
 
 import Crypto.Cipher.AES
+import Crypto.Hash
+import Crypto.Protocol.KDF
 
 try:
-    from fastpbkdf2 import pbkdf2_hmac  # Prefer a fast, C++ implementation;
+    # Prefer a fast, pure C++ implementation:
+    from fastpbkdf2 import pbkdf2_hmac
 except ImportError:
-    from hashlib import pbkdf2_hmac  # but settle for a standard library one if necessary!
+    # Otherwise, use pycryptodome - wrapping it to look like the standard library method signature.
+    # It is 2-3x faster than the standard library 'hashlib.pbkdf2_hmac' method, but still 2x slower than fastpbkdf2.
+    HASH_FNS = {"sha1": Crypto.Hash.SHA1, "sha256": Crypto.Hash.SHA256}
+
+    def pbkdf2_hmac(hash_name, password, salt, iterations, dklen=None):
+        return Crypto.Protocol.KDF.PBKDF2(password, salt, dklen, iterations, hmac_hash_module=HASH_FNS[hash_name])
 
 
-__all__ = ["Keybag", "AESdecryptCBC"]
-
-
-_CLASSKEY_TAGS = [b"CLAS", b"WRAP", b"WPKY", b"KTYP", b"PBKY"]  # UUID
-_KEYBAG_TYPES = ["System", "Backup", "Escrow", "OTA (icloud)"]
-_KEY_TYPES = ["AES", "Curve25519"]
-_PROTECTION_CLASSES = {
-    1: "NSFileProtectionComplete",
-    2: "NSFileProtectionCompleteUnlessOpen",
-    3: "NSFileProtectionCompleteUntilFirstUserAuthentication",
-    4: "NSFileProtectionNone",
-    5: "NSFileProtectionRecovery?",
-    6: "kSecAttrAccessibleWhenUnlocked",
-    7: "kSecAttrAccessibleAfterFirstUnlock",
-    8: "kSecAttrAccessibleAlways",
-    9: "kSecAttrAccessibleWhenUnlockedThisDeviceOnly",
-    10: "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly",
-    11: "kSecAttrAccessibleAlwaysThisDeviceOnly"
-}
-_WRAP_DEVICE = 1
-_WRAP_PASSPHRASE = 2
+__all__ = ["Keybag", "AESdecryptCBC", "removePadding"]
 
 
 class Keybag:
@@ -69,7 +56,7 @@ class Keybag:
                 if currentClassKey:
                     self.classKeys[currentClassKey[b"CLAS"]] = currentClassKey
                 currentClassKey = {b"UUID": data}
-            elif tag in _CLASSKEY_TAGS:
+            elif tag in [b"CLAS", b"WRAP", b"WPKY", b"KTYP", b"PBKY"]:
                 currentClassKey[tag] = data
             else:
                 self.attrs[tag] = data
@@ -82,7 +69,8 @@ class Keybag:
         for classkey in self.classKeys.values():
             if b"WPKY" not in classkey:
                 continue
-            if classkey[b"WRAP"] & _WRAP_PASSPHRASE:
+            WRAP_PASSPHRASE = 2
+            if classkey[b"WRAP"] & WRAP_PASSPHRASE:
                 k = _AESUnwrap(passphrase_key, classkey[b"WPKY"])
                 if not k:
                     return False
@@ -94,32 +82,6 @@ class Keybag:
         if len(persistent_key) != 0x28:
             raise Exception("Invalid key length")
         return _AESUnwrap(ck, persistent_key)
-
-    def printClassKeys(self):
-        print("== Keybag")
-        print("Keybag type: %s keybag (%d)" % (_KEYBAG_TYPES[self.type], self.type))
-        print("Keybag version: %d" % self.attrs[b"VERS"])
-        print("Keybag UUID: %s" % hexlify(self.uuid))
-        print("-"*209)
-        print("".join(["Class".ljust(53),
-                       "WRAP".ljust(5),
-                       "Type".ljust(11),
-                       "Key".ljust(65),
-                       "WPKY".ljust(65),
-                       "Public key"]))
-        print("-"*208)
-        for k, ck in self.classKeys.items():
-            if k == 6:
-                print("")
-
-            print("".join(
-                [_PROTECTION_CLASSES.get(k).ljust(53),
-                 str(ck.get(b"WRAP", "")).ljust(5),
-                 _KEY_TYPES[ck.get(b"KTYP", 0)].ljust(11),
-                 hexlify(ck.get(b"KEY", b"")).ljust(65).decode('utf-8'),
-                 hexlify(ck.get(b"WPKY", b"")).ljust(65).decode('utf-8'),
-                 ]))
-        print()
 
 
 def _loopTLVBlocks(blob):
