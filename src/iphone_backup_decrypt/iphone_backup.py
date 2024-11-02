@@ -161,7 +161,7 @@ class EncryptedBackup:
             raise ValueError("A relative_path must be provided!")
         # Ensure that we've initialised everything:
         if self._temp_manifest_db_conn is None:
-            self._decrypt_manifest_db_file()
+            self.decrypt_manifest_db_file()
         # Use Manifest.db to find the on-disk filename and file metadata, including the keys, for the file.
         # The metadata is contained in the 'file' column, as a binary PList file:
         try:
